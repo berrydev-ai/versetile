@@ -1,0 +1,67 @@
+/* Design tokens.
+ *
+ * Lifted verbatim from the legacy single-file app's :root block, so a ported
+ * module looks identical to its legacy counterpart with no re-tuning. The
+ * convention from the old CLAUDE.md carries over unchanged and is the one rule
+ * worth enforcing in review:
+ *
+ *   NEVER hardcode a hex value in a component. Always var(--something).
+ *
+ * That is what lets the whole app be re-themed (a light mode, a per-module
+ * accent, a testers' build) by editing this one file. Anything added here
+ * should be a semantic name, not a color name -- --accent, not --gold.
+ */
+
+:root {
+  /* Surfaces, stacked darkest to lightest. panel3 is the "raised control" level. */
+  --bg: #0a0a0b;
+  --panel: #151517;
+  --panel2: #1c1c1f;
+  --panel3: #242428;
+
+  /* Brand gold. Roots on diagrams, active tabs, primary buttons. */
+  --accent: #f5c518;
+  --accent-dim: #8a731a;
+
+  --text: #f2f2f0;
+  --muted: #8a8a8f;
+  --line: #2e2e31;
+
+  /* Chord/scale tones -- the non-root highlighted notes on a diagram. */
+  --tone: #4dd0a5;
+  --tone-dim: #245a48;
+
+  /* Looper: record red + a fixed per-layer color palette, so track color stays a
+     CSS token instead of a hardcoded hex sprinkled through JS (JS just picks
+     --loop-cN by index). Keep --loop-c0..7 contiguous -- the looper engine reads
+     them by index and assumes exactly LOOPER_COLOR_COUNT of them exist. */
+  --rec: #ff5252;
+  --rec-dim: #3a1616;
+  --loop-c0: #ff8a65;
+  --loop-c1: #4dd0a5;
+  --loop-c2: #f5c518;
+  --loop-c3: #7c9eff;
+  --loop-c4: #ff6b9d;
+  --loop-c5: #5bd6ff;
+  --loop-c6: #b39ddb;
+  --loop-c7: #a3e635;
+
+  /* --- Added by the React shell (no legacy equivalent) --- */
+
+  /* One system font stack, referenced everywhere rather than repeated. */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Safe-area insets, so a phone's notch/home indicator never eats a control.
+     The Looper is the module that actually needs this -- its wheel is bottom-heavy. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Single breakpoint constant, documented here even though CSS can't use a
+     custom property inside a media query -- 520px is where the legacy app drops
+     the wordmark for the symbol alone. Keep any new breakpoint in sync by hand. */
+  --brand-collapse-width: 520px;
+}

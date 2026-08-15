@@ -1,0 +1,30 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# The legacy single-file app lives in public/legacy/, so Vite copies it to
+# dist/legacy/index.html untouched. It is served directly and must NOT be caught
+# by the SPA fallback below -- this rule wins because Netlify applies redirects
+# in file order and stops at the first match.
+[[redirects]]
+  from = "/legacy"
+  to = "/legacy/index.html"
+  status = 200
+
+# SPA fallback: every other unmatched path renders the React app so deep links
+# like /looper or /progressions survive a hard refresh.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# The Looper needs the microphone. Netlify serves https by default, which is the
+# secure context getUserMedia requires -- this header just makes the permission
+# explicit rather than relying on the default allowlist.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Permissions-Policy = "microphone=(self)"
