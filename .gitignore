@@ -3,6 +3,9 @@ dist/
 dist-ssr/
 *.local
 
+# Wrangler's local build/state cache for Cloudflare deploys.
+.wrangler/
+
 .DS_Store
 .vite/
 

@@ -1,0 +1,45 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "versetile",
+  "compatibility_date": "2026-08-15",
+
+  // There is no `main` here on purpose. This is an assets-only Worker: Cloudflare
+  // serves dist/ straight from its edge and never boots a script. That keeps the
+  // deploy free of server code we would have to maintain, and it means zero Worker
+  // invocations for ordinary page loads. If an API ever lands (say, syncing the Song
+  // Project across devices), add `main` plus a `run_worker_first` pattern scoped to
+  // that route -- the static side keeps behaving exactly as it does now.
+  "assets": {
+    "directory": "./dist",
+
+    // The React app is a client-routed SPA, so a hard refresh on a deep link like
+    // /looper must still return index.html rather than a 404. Cloudflare matches real
+    // assets FIRST and only falls back here, which is what keeps the legacy app safe:
+    // dist/legacy/index.html is a real file, so it wins before this rule is reached.
+    "not_found_handling": "single-page-application"
+  },
+
+  // Kept on. This gives a versetile.<subdomain>.workers.dev URL that works without
+  // waiting on DNS, which is what we verify against before and independently of
+  // versetile.app. The tradeoff is a second public URL for the same app -- if that
+  // starts drifting into a stale link anyone shares, flip this to false and the
+  // custom domain becomes the only way in.
+  "workers_dev": true,
+
+  // The public home. `custom_domain` makes Cloudflare own the DNS record and the
+  // certificate for this hostname, so there is no origin to point at and nothing to
+  // renew -- the 522 that used to answer here was a leftover record aimed at a dead
+  // origin, and this replaces it. https is what matters beyond the nice URL: the
+  // Looper's getUserMedia refuses to hand over the microphone outside a secure
+  // context, which is also why LAN dev-server testing can't exercise it.
+  "routes": [
+    {
+      "pattern": "versetile.app",
+      "custom_domain": true
+    }
+  ],
+
+  "observability": {
+    "enabled": true
+  }
+}
