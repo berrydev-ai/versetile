@@ -85,22 +85,32 @@ Every module should read/write a shared **Song Project** object (title, key, pro
 - Phone-friendly responsive layout was explicitly deferred (2026-08-14) for the app as a whole — **but the Looper rewrite (2b) is phone-first**, so the Looper led and the rest of the app stays desktop-oriented until its own pass. The rebrand (3c) added the app's second `@media` breakpoint, scoped only to the header.
 
 ## Build workflow decided
-Non-coder-friendly pipeline: GitHub for code/version history → connected to Netlify (or Vercel) for auto-publish on every save → testers use the resulting browser link. Native iOS/Android via Capacitor-style wrapping once web version is validated. Mark has a Mac, which covers the Xcode requirement for eventual iOS builds via TestFlight. Note: if browser audio quality proves to be a hard ceiling, Capacitor native-audio/audio-recorder plugins are the escape hatch.
+Non-coder-friendly pipeline: GitHub for code/version history → connected to a host for auto-publish on every save → testers use the resulting browser link. (Settled 2026-08-15: the host is Cloudflare Workers, not Netlify or Vercel — see "Hosting" above. The auto-publish half is still to be connected.) Native iOS/Android via Capacitor-style wrapping once web version is validated. Mark has a Mac, which covers the Xcode requirement for eventual iOS builds via TestFlight. Note: if browser audio quality proves to be a hard ceiling, Capacitor native-audio/audio-recorder plugins are the escape hatch.
 
-**Testing constraint**: mic access requires a secure context (https:// or localhost) — opening `versetile.html` directly as a local file won't prompt for the microphone. Real device testing needs it hosted (Netlify) or served from localhost.
+**Testing constraint**: mic access requires a secure context (https:// or localhost) — opening `versetile.html` directly as a local file won't prompt for the microphone. Real device testing needs it hosted (now Cloudflare — see "Hosting" above) or served from localhost. Note this rules out the LAN address `npm run dev` prints: `http://192.168.x.x` is neither https nor localhost, so the Looper loads there but cannot record.
+
+## Hosting: live on Cloudflare (2026-08-15)
+The hosting bottleneck below is **cleared** — the React app is deployed and reachable over https, so the real-iPhone Looper work that was waiting on a secure context can start.
+
+- **Host**: Cloudflare Workers static assets, not Netlify and not Pages. Workers is where Cloudflare is putting new work (Pages is in maintenance for new features), and an assets-only Worker can grow an API route later — relevant if the Song Project ever syncs across devices — without a migration. `netlify.toml` was deliberately **kept and left working**: the same SPA/legacy/header rules now exist for both hosts, so there is a fallback if Cloudflare misbehaves.
+- **Config**: `wrangler.jsonc` (assets-only — no `main`, so no server code and no Worker invocation on a normal page load) plus `public/_headers`. Vite copies `public/` into `dist/` verbatim, which is how `_headers` reaches the asset directory Cloudflare parses it from.
+- **The `/legacy` question, settled by measurement**: the worry was that the SPA fallback would swallow the legacy app. It does not. Cloudflare matches real assets *before* falling back, and `dist/legacy/index.html` is a real file. Verified on the deployed URL: `/legacy` → 307 → `/legacy/` → the 250 KB legacy app, while `/looper` and any unknown path → the React `index.html`. No redirect rule was needed, so there is no Cloudflare equivalent of netlify.toml's `/legacy` rule.
+- **Build was broken and had never succeeded.** `tsconfig.node.json` was a `composite` referenced project with `noEmit: true`, which TypeScript rejects (TS6310), so `npm run build` failed at the `tsc` step — meaning the Netlify build in the plan below would have failed too. Fixed by giving that project `emitDeclarationOnly` and a temp `outDir` under `node_modules/.tmp/`.
+- **Open**: `versetile.app` is registered on Cloudflare but still carries an old proxied DNS record pointing at a dead origin (it answers 522). Cloudflare refuses to attach a custom domain over externally-managed records, so that record has to be deleted in the dashboard first. Until then the app lives at its `workers.dev` URL.
+- **Open**: push-to-deploy. `npm run deploy` works from a checkout today; connecting the GitHub repo to Workers Builds needs a one-time browser authorization, and is what restores the "Mark pushes, testers get it" pipeline below.
 
 ## Release & distribution plan
-- Now: web app, Netlify/Vercel hosting, browser link for testers.
+- Now: web app, **Cloudflare Workers** hosting (Netlify config retained as a fallback), browser link for testers.
 - Later iOS: TestFlight via Apple Developer Program ($99/yr).
 - Later Android: Google Play Console ($25 one-time; note the 12-testers/14-days closed-test requirement before going fully public).
 - Public launch reuses the same beta pipeline — no separate infra needed.
 
 ## Immediate next steps (as of 2026-08-14)
 1. ~~Mark to share the current Fretwork HTML file~~ — done; Claude reaches it via the connected `Documents` folder on Mark's Mac.
-2. Set up free GitHub + Netlify accounts (can happen in parallel) — **not yet done, and now the main bottleneck**: the Looper can't be tested on a real iPhone until it's hosted, and everything left on the Looper list needs a real device.
+2. ~~Set up free GitHub + Netlify accounts~~ — **done, and the bottleneck is cleared** (2026-08-15). The repo is on GitHub and the app is deployed to Cloudflare Workers over https, so the Looper can now be opened on a real iPhone with a working microphone. See "Hosting" above; two follow-ups remain there (the `versetile.app` DNS record, and connecting push-to-deploy).
 3. ~~Build looper phase 1~~ — done. Multi-track overdub, saved projects, tempo/count-in, the UI rewrite, and the bar grid are all done.
 4. ~~Run the Looper UI rewrite (2b)~~ — done.
-5. Publish via Netlify once there's something to show; send testers the link — blocked on step 2.
+5. ~~Publish once there's something to show~~ — published to Cloudflare; no longer blocked. Sending testers the link is worth holding until `versetile.app` resolves, so the link they bookmark is the permanent one rather than a `workers.dev` URL that later moves.
 6. **Latency calibration + per-track nudge** — Steps 1–4 designed and ready, waiting on Mark to say go; needs a real-iPhone pass once built. The takes bin is still separately deferred.
 7. Phone-friendly responsive layout pass for the rest of the app — still deferred; the Looper got its phone layout as part of 2b.
 8. **Play the bar grid on a real instrument.** The one thing headless tests can't judge is whether strictly-next-bar quantization feels right to play against, and whether auto-rounding an overdub's length ever picks the number you didn't want. Both are single-constant changes if they're wrong.

@@ -112,6 +112,16 @@ app be re-themed — a light mode, a per-module accent — by editing one file.
 unchanged**. Vite copies `public/` to `dist/` without processing, so it deploys
 as-is and is served at `/legacy/`.
 
+The SPA fallback does not swallow it, and this is worth not re-deriving. Both
+hosts resolve real files before falling back to `index.html`, and
+`dist/legacy/index.html` is a real file — so it wins on its own, with no rule
+protecting it. Verified against the Cloudflare deploy on 2026-08-15: `/legacy`
+returns 307 to `/legacy/`, `/legacy/` returns the legacy app, and an unknown
+path like `/some-deep-link` returns the React shell. The corollary is the thing
+to actually watch: because ordering is what protects it, deleting
+`public/legacy/index.html` would not 404: the path would quietly start serving
+the React app instead.
+
 It is not an iframe. The Looper needs microphone access, a wake lock, and an
 `AudioContext` started inside a real user gesture; a nested browsing context adds
 failure modes to all three, and the Looper is precisely the thing that has to

@@ -1,0 +1,21 @@
+# Cloudflare parses this file out of the deployed asset directory and applies it to
+# static asset responses -- it is never served as an asset itself. It lives in public/
+# because that is the folder Vite copies verbatim into dist/, and dist/ is what
+# wrangler.jsonc points `assets.directory` at.
+#
+# This is the Cloudflare half of the header rules in netlify.toml. Both files are kept
+# in sync deliberately: the app stays deployable to either host.
+
+/*
+  # The Looper needs the microphone. Cloudflare serves https, which is the secure
+  # context getUserMedia requires -- this header just makes the permission explicit
+  # rather than leaning on the default allowlist.
+  Permissions-Policy: microphone=(self)
+
+# Vite fingerprints everything under /assets/ with a content hash, so a given URL can
+# never change meaning. That makes it safe to cache these forever and skip the
+# revalidation round-trip. Nothing else gets this treatment -- notably
+# /legacy/index.html has a stable filename, so it must stay revalidated or testers
+# would be pinned to whatever legacy build they loaded first.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -60,17 +60,28 @@ npm run typecheck
 
 ## Deploying
 
-Push to GitHub, then connect the repo to [Netlify](https://netlify.com). The
-settings are already in `netlify.toml`, so Netlify reads them and needs no
-manual configuration:
+Cloudflare Workers is the live host. Either host serves https, which is what
+makes the microphone work on a real iPhone — the thing local files never could.
 
-- build command `npm run build`
-- publish directory `dist`
+```bash
+npm run deploy
+```
+
+That builds and uploads in one step. `wrangler.jsonc` holds the whole
+configuration, and it is an *assets-only* Worker — there is no server code, so
+Cloudflare serves `dist/` straight from its edge:
+
+- `dist/` uploaded as static assets
 - SPA fallback, so `/looper` survives a refresh
-- `/legacy/` served directly, outside the fallback
+- `/legacy/` matched as a real file, so the fallback never swallows it
+- `public/_headers` sets `Permissions-Policy: microphone=(self)` and caches
+  the hashed `/assets/` files forever
 
-Every push to `main` republishes. Netlify serves https, which is what makes the
-microphone work on a real iPhone — the thing local files could never do.
+Pushes to `main` republish once the repo is connected to Workers Builds in the
+Cloudflare dashboard. Until then, `npm run deploy` from a checkout is the way.
+
+`netlify.toml` is kept in sync as a working fallback — the same SPA, legacy and
+header rules expressed for Netlify. The app stays deployable to either.
 
 ## Layout
 
